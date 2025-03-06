@@ -44,8 +44,9 @@ dotnet tool install --global dotnet-ef
 \dt
 
 Gerando as Classes do Banco Automaticamente
+```sh
 dotnet ef dbcontext scaffold "Host=SEU_HOST;Database=SEU_BANCO;Username=SEU_USUARIO;Password=SUA_SENHA" Npgsql.EntityFrameworkCore.PostgreSQL -o Models --context-dir Data --force
-
+```
 Explicação do comando:
 
 scaffold → Gera as classes do banco automaticamente.
@@ -53,4 +54,6 @@ Host=SEU_HOST;Database=SEU_BANCO;Username=SEU_USUARIO;Password=SUA_SENHA → Str
 Npgsql.EntityFrameworkCore.PostgreSQL → Provedor do PostgreSQL.
 -o Models → Salva as entidades na pasta Models/.
 --context-dir Data → Salva o DbContext na pasta Data/.
+--force → Sobrescreve arquivos existentes (caso necessário).
+
 
