@@ -255,6 +255,10 @@ appsettings.json
   }
 }
 ```
+```sh
+export Jwt__SecretKey="G6jT2XkqfhdP4JZmDlL0+N9sU6K0Zw=="
+```
+
 PesquisaController.cs
 ```C#
 using Microsoft.AspNetCore.Authorization;
