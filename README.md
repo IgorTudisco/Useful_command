@@ -409,6 +409,385 @@ Usar o token no header das requisições Authorization: Bearer {seu-token}
 Consultar um CPF (GET /api/pesquisa/{cpf}) e ele será registrado com o usuário logado
 Ver todas as pesquisas feitas pelo usuário (GET /api/pesquisa/minhas-pesquisas)
 ```
+Front Angular
+
+```sh
+ng new frontend --routing
+cd frontend
+ng add @angular-eslint/schematics
+npm install bootstrap
+```
+Add no angular.json
+```json
+"styles": [
+  "node_modules/bootstrap/dist/css/bootstrap.min.css",
+  "src/styles.css"
+]
+```
+Componente
+```sh
+ng g c pages/cadastro
+ng g c pages/login
+ng g c pages/pesquisa
+ng g s services/auth
+ng g s services/pesquisa
+```
+app-routing.module.ts
+```ts
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { CadastroComponent } from './pages/cadastro/cadastro.component';
+import { LoginComponent } from './pages/login/login.component';
+import { PesquisaComponent } from './pages/pesquisa/pesquisa.component';
+
+const routes: Routes = [
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: 'cadastro', component: CadastroComponent },
+  { path: 'login', component: LoginComponent },
+  { path: 'pesquisa', component: PesquisaComponent }
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }
+```
+auth.service.ts
+```ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  private apiUrl = 'http://localhost:5000/api/auth'; // Altere para sua API
+
+  constructor(private http: HttpClient) { }
+
+  cadastrar(dados: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register`, dados);
+  }
+
+  login(dados: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login`, dados);
+  }
+}
+```
+pesquisa.service.ts
+```ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PesquisaService {
+  private apiUrl = 'http://localhost:5000/api/pesquisa'; // Altere para sua API
+
+  constructor(private http: HttpClient) { }
+
+  pesquisarCpf(cpf: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/${cpf}`);
+  }
+}
+```
+cadastro.component.ts
+```ts
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { AuthService } from 'src/app/services/auth.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-cadastro',
+  templateUrl: './cadastro.component.html',
+  styleUrls: ['./cadastro.component.css']
+})
+export class CadastroComponent {
+  cadastroForm: FormGroup;
+
+  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
+    this.cadastroForm = this.fb.group({
+      nome: [''],
+      email: [''],
+      senha: ['']
+    });
+  }
+
+  cadastrar() {
+    this.authService.cadastrar(this.cadastroForm.value).subscribe(() => {
+      this.router.navigate(['/login']);
+    });
+  }
+}
+```
+cadastro.component.html
+```ts
+<div class="container mt-5">
+  <h2>Cadastro</h2>
+  <form [formGroup]="cadastroForm" (ngSubmit)="cadastrar()">
+    <div class="mb-3">
+      <label>Nome Completo</label>
+      <input class="form-control" formControlName="nome">
+    </div>
+    <div class="mb-3">
+      <label>E-mail</label>
+      <input class="form-control" type="email" formControlName="email">
+    </div>
+    <div class="mb-3">
+      <label>Senha</label>
+      <input class="form-control" type="password" formControlName="senha">
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Cadastrar</button>
+  </form>
+</div>
+```
+login.component.ts
+```ts
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { AuthService } from 'src/app/services/auth.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css']
+})
+export class LoginComponent {
+  loginForm: FormGroup;
+
+  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
+    this.loginForm = this.fb.group({
+      email: [''],
+      senha: ['']
+    });
+  }
+
+  login() {
+    this.authService.login(this.loginForm.value).subscribe(() => {
+      this.router.navigate(['/pesquisa']);
+    });
+  }
+}
+```
+login.component.html
+```html
+<div class="container mt-5">
+  <h2>Login</h2>
+  <form [formGroup]="loginForm" (ngSubmit)="login()">
+    <div class="mb-3">
+      <label>E-mail</label>
+      <input class="form-control" type="email" formControlName="email">
+    </div>
+    <div class="mb-3">
+      <label>Senha</label>
+      <input class="form-control" type="password" formControlName="senha">
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Entrar</button>
+  </form>
+</div>
+```
+pesquisa.component.ts
+```ts
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { PesquisaService } from 'src/app/services/pesquisa.service';
+
+@Component({
+  selector: 'app-pesquisa',
+  templateUrl: './pesquisa.component.html',
+  styleUrls: ['./pesquisa.component.css']
+})
+export class PesquisaComponent {
+  pesquisaForm: FormGroup;
+  resultado: any = null;
+
+  constructor(private fb: FormBuilder, private pesquisaService: PesquisaService) {
+    this.pesquisaForm = this.fb.group({ cpf: [''] });
+  }
+
+  pesquisar() {
+    const cpf = this.pesquisaForm.value.cpf;
+    this.pesquisaService.pesquisarCpf(cpf).subscribe(data => {
+      this.resultado = data;
+    });
+  }
+}
+```
+pesquisa.component.html
+```html
+<div class="container mt-5">
+  <h2>Pesquisa de CPF</h2>
+  <input class="form-control" placeholder="Digite o CPF" formControlName="cpf">
+  <button class="btn btn-primary mt-2" (click)="pesquisar()">Pesquisar</button>
+
+  <div *ngIf="resultado" class="mt-3">
+    <h4>Resultado:</h4>
+    <p>Nome: {{ resultado.nome }}</p>
+    <p>CPF: {{ resultado.cpf }}</p>
+  </div>
+</div>
+```
+Autenticados acessem a tela de pesquisa.
+
+```sh
+ng g g guards/auth
+```
+/auth.guard.ts
+```ts
+import { Injectable } from '@angular/core';
+import { CanActivate, Router } from '@angular/router';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthGuard implements CanActivate {
+  constructor(private router: Router) {}
+
+  canActivate(): boolean {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      this.router.navigate(['/login']);
+      return false;
+    }
+    return true;
+  }
+}
+```
+ Aplique o AuthGuard na rota de pesquisa. Edite src/app/app-routing.module.ts:
+```ts
+const routes: Routes = [
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: 'cadastro', component: CadastroComponent },
+  { path: 'login', component: LoginComponent },
+  { path: 'pesquisa', component: PesquisaComponent, canActivate: [AuthGuard] }
+];
+```
+Ajustar o AuthService para armazenar o token
+- auth.service.ts
+```ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { Router } from '@angular/router';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  private apiUrl = 'http://localhost:5000/api/auth';
+
+  constructor(private http: HttpClient, private router: Router) { }
+
+  cadastrar(dados: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register`, dados);
+  }
+
+  login(dados: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login`, dados).pipe(
+      tap((res: any) => {
+        localStorage.setItem('token', res.token);
+        this.router.navigate(['/pesquisa']);
+      })
+    );
+  }
+
+  logout() {
+    localStorage.removeItem('token');
+    this.router.navigate(['/login']);
+  }
+
+  estaLogado(): boolean {
+    return !!localStorage.getItem('token');
+  }
+}
+```
+login.component.html
+```html
+<div class="container mt-5">
+  <h2>Login</h2>
+  <form [formGroup]="loginForm" (ngSubmit)="login()">
+    <div class="mb-3">
+      <label>E-mail</label>
+      <input class="form-control" type="email" formControlName="email">
+    </div>
+    <div class="mb-3">
+      <label>Senha</label>
+      <input class="form-control" type="password" formControlName="senha">
+    </div>
+    <button class="btn btn-primary w-100" type="submit">Entrar</button>
+  </form>
+
+  <p class="mt-3">
+    Ainda não tem uma conta? <a routerLink="/cadastro">Cadastre-se aqui</a>.
+  </p>
+</div>
+```
+ Botão de Logout
+ pesquisa.component.html
+ ```html
+<div class="container mt-5">
+  <div class="d-flex justify-content-between align-items-center">
+    <h2>Pesquisa de CPF</h2>
+    <button class="btn btn-danger" (click)="logout()">Sair</button>
+  </div>
+  
+  <input class="form-control mt-3" placeholder="Digite o CPF" formControlName="cpf">
+  <button class="btn btn-primary mt-2" (click)="pesquisar()">Pesquisar</button>
+
+  <div *ngIf="resultado" class="mt-3">
+    <h4>Resultado:</h4>
+    <p>Nome: {{ resultado.nome }}</p>
+    <p>CPF: {{ resultado.cpf }}</p>
+  </div>
+</div>
+```
+Edite src/app/pages/pesquisa/pesquisa.component.ts
+```ts
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { PesquisaService } from 'src/app/services/pesquisa.service';
+import { AuthService } from 'src/app/services/auth.service';
+
+@Component({
+  selector: 'app-pesquisa',
+  templateUrl: './pesquisa.component.html',
+  styleUrls: ['./pesquisa.component.css']
+})
+export class PesquisaComponent {
+  pesquisaForm: FormGroup;
+  resultado: any = null;
+
+  constructor(
+    private fb: FormBuilder,
+    private pesquisaService: PesquisaService,
+    private authService: AuthService
+  ) {
+    this.pesquisaForm = this.fb.group({ cpf: [''] });
+  }
+
+  pesquisar() {
+    const cpf = this.pesquisaForm.value.cpf;
+    this.pesquisaService.pesquisarCpf(cpf).subscribe(data => {
+      this.resultado = data;
+    });
+  }
+
+  logout() {
+    this.authService.logout();
+  }
+}
+```
+
+
+
+
+
 
 
 
