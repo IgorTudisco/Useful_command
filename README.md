@@ -783,6 +783,188 @@ export class PesquisaComponent {
   }
 }
 ```
+=> Verificação 3: Interceptor Global (Caso Precise de Autenticação)
+
+```sh
+ng generate service interceptors/auth
+```
+
+```ts
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
+
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      const clonedReq = req.clone({
+        headers: req.headers.set('Authorization', `Bearer ${token}`)
+      });
+      return next.handle(clonedReq);
+    }
+
+    return next.handle(req);
+  }
+}
+```
+
+ Adicione no app.module.ts
+
+ ```ts
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
+
+@NgModule({
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+  ]
+})
+```
+Se ainda der erro 404, tente rodar o front com o proxy do Angular
+```sh
+ng serve --proxy-config proxy.conf.json
+```
+Se nada funcionar, tente chamar a API diretamente no navegador
+```txt
+http://localhost:5000/api/pesquisa/xxxxxxxxxx
+```
+Código APÓS o Interceptor - pesquisarCpf
+
+```ts
+pesquisarCpf(cpf: string): Observable<any> {
+  return this.http.get(`${this.apiUrl}/${cpf}`);  // O Interceptor já adiciona o token automaticamente
+}
+```
+Modifique o auth.interceptor.ts para não adicionar o token em requisições para "login" e "cadastro":
+
+```ts
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
+
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    const token = localStorage.getItem('token');
+
+    // URLs que NÃO precisam de token (ajuste conforme necessário)
+    if (req.url.includes('/auth/login') || req.url.includes('/auth/cadastro')) {
+      return next.handle(req);  // 🔥 Deixa a requisição seguir sem modificar headers
+    }
+
+    if (token) {
+      const clonedReq = req.clone({
+        headers: req.headers.set('Authorization', `Bearer ${token}`)
+      });
+      return next.handle(clonedReq);
+    }
+
+    return next.handle(req);
+  }
+}
+```
+O ideal é armazenar o token no localStorage para que ele permaneça salvo mesmo ao recarregar a página
+
+```ts
+localStorage.setItem('token', tokenRecebido);
+```
+Se quiser que o token seja apagado ao fechar a aba, use sessionStorage:
+```ts
+sessionStorage.setItem('token', tokenRecebido);
+```
+Crie um método no serviço de autenticação (auth.service.ts) para checar se o token ainda está válido
+```ts
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthService {
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('token');
+    return !!token; // Retorna true se o token existir, senão false
+  }
+
+  logout(): void {
+    localStorage.removeItem('token');
+  }
+}
+```
+Agora, no AppComponent, podemos redirecionar para o login se o usuário não estiver autenticado:
+
+```ts
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { AuthService } from './services/auth.service';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+})
+export class AppComponent implements OnInit {
+  constructor(private authService: AuthService, private router: Router) {}
+
+  ngOnInit() {
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/login']); // Redireciona para o login se não estiver autenticado
+    }
+  }
+}
+```
+ng generate guard guards/auth
+```sh
+ng generate guard guards/auth
+```
+Edite auth.guard.ts:
+
+```ts
+import { Injectable } from '@angular/core';
+import { CanActivate, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthGuard implements CanActivate {
+  constructor(private authService: AuthService, private router: Router) {}
+
+  canActivate(): boolean {
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return false;
+    }
+    return true;
+  }
+}
+```
+
+Agora, aplique o AuthGuard nas rotas protegidas (app-routing.module.ts):
+
+```ts
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { LoginComponent } from './components/login/login.component';
+import { CadastroComponent } from './components/cadastro/cadastro.component';
+import { PesquisaComponent } from './components/pesquisa/pesquisa.component';
+import { AuthGuard } from './guards/auth.guard'; // Importação do AuthGuard
+
+const routes: Routes = [
+  { path: 'login', component: LoginComponent }, // Login é público
+  { path: 'cadastro', component: CadastroComponent }, // Cadastro é público
+  { path: 'pesquisa', component: PesquisaComponent, canActivate: [AuthGuard] }, // Protegido pelo AuthGuard
+  { path: '**', redirectTo: 'login' }, // Redireciona qualquer rota inválida para o login
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule],
+})
+export class AppRoutingModule {}
+
+```
+
+
 
 
 
