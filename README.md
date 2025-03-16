@@ -964,7 +964,13 @@ export class AppRoutingModule {}
 
 ```
 
+Configuring application environments
 
+=> link: https://v17.angular.io/guide/build
+
+=> https://github.com/IgorTudisco/Eco-merce/blob/main/frontEnd/src/environments/environment.prod.ts
+
+=> https://github.com/IgorTudisco/Eco-merce/blob/main/frontEnd/src/app/service/auth.service.ts
 
 
 
