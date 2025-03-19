@@ -11,6 +11,9 @@ dotnet add package Microsoft.EntityFrameworkCore.Design
 dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
 dotnet add package Swashbuckle.AspNetCore
 dotnet add package Microsoft.AspNetCore.Cors
+-----
+dotnet add package Microsoft.AspNetCore.Authentication --version 2.3.0
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version 9.0.3
 
 ```
 
